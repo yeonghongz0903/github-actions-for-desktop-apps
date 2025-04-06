@@ -39,7 +39,7 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <DefaultLanguage>en-US</DefaultLanguage>
     <!-- True/false. Sign the output packages. Default is true. -->
-    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <AppxPackageSigningEnabled>False</AppxPackageSigningEnabled>
     <!-- Values: StoreUpload, CI, SideLoadOnly. Default is StoreUpload.
          StoreUpload = appxupload + sideload
          CI = appxupload
