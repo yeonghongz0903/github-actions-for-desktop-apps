@@ -1,24 +1,16 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT license.
+name: Wpf Continuous Integration
 
-# This continuous integration pipeline is triggered anytime a user pushes code to the repo.
-# This pipeline builds the Wpf project, runs unit tests, then saves the MSIX build artifact.
-name:  Wpf Continuous Integration
-
-# Trigger on every master branch push and pull request
 on:
   push:
     branches:
-      - master
+      - main
       - 'maintenence/*'
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
-
   build:
-
     strategy:
       matrix:
         targetplatform: [x86, x64]
@@ -37,7 +29,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
 
@@ -46,13 +38,19 @@ jobs:
       uses: dotnet/nbgv@master
       id: nbgv
 
-    # Install the .NET Core workload
-    - name: Install .NET Core
-      uses: actions/setup-dotnet@v3
+    # Install the .NET Core 6.0 workload
+    - name: Install .NET Core 6.0
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '6.0.x'
 
-    # Add  MsBuild to the PATH: https://github.com/microsoft/setup-msbuild
+    # Install the .NET Core 3.1 runtime
+    - name: Install .NET Core 3.1
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '3.1.x'
+
+    # Add MsBuild to the PATH: https://github.com/microsoft/setup-msbuild
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1.1
 
@@ -68,11 +66,11 @@ jobs:
       run: dotnet test $env:Test_Project_Path
 
     # Restore the application
-    - name:  Restore the Wpf application to populate the obj folder
-      run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration /p:RuntimeIdentifier=$env:RuntimeIdentifier
-      env:
-        Configuration: Debug
-        RuntimeIdentifier: win-${{ matrix.targetplatform }}
+    # - name:  Restore the Wpf application to populate the obj folder
+    #   run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration /p:RuntimeIdentifier=$env:RuntimeIdentifier
+    #   env:
+    #     Configuration: Debug
+    #     RuntimeIdentifier: win-${{ matrix.targetplatform }}
 
     # Decode the Base64 encoded Pfx
     - name: Decode the Pfx
@@ -84,7 +82,7 @@ jobs:
 
     # Build the Windows Application Packaging project
     - name: Build the Windows Application Packaging Project (wapproj)
-      run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
+      run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle /p:PackageCertificateKeyFile=$env:Wap_Project_Directory\$env:SigningCertificate
       env:
         AppxBundle: Never
         BuildMode: SideloadOnly
@@ -97,7 +95,14 @@ jobs:
 
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-artifact
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
-        name: MSIX Package
-        path: ${{ env.Wap_Project_Directory }}\${{ env.App_Packages_Directory }}
+      # create unique artifacts names across platform, runs
+        name: MyWpfApp-${{ matrix.targetplatform }}-${{ github.run_id }}
+        path: MyWPFApp.Package/AppPackages/
+        retention-days: 7  # Optional: auto-cleanup after 7 days
+
+        # name: MyWpfApp  #MSIX Package
+        # path: ./MyWPFApp.Package/AppPackages/ #${{ env.Wap_Project_Directory }}\${{ env.App_Packages_Directory }}
+
+      
