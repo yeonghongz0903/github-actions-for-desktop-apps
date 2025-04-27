@@ -5,6 +5,9 @@ WORKDIR /app
 
 # Copy source files
 COPY package*.json ./
+COPY build.gradle .
+COPY settings.gradle .
+COPY src ./src
 
 # Build the project (create JAR)
 RUN gradle build --no-daemon
