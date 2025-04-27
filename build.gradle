@@ -1,0 +1,97 @@
+plugins {
+    id 'java'
+}
+
+group 'com.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Add JUnit dependency for testing
+    testImplementation 'junit:junit:4.13.2'
+}
+
+// Define a task to Run a Test 
+task RunTest(type: Test) {
+    // Specify the directory containing test classes
+    testClassesDirs = sourceSets.test.output.classesDirs
+
+    // Optionally configure test options
+    testLogging {
+        // Configure which events to log during test execution
+        events 'passed', 'skipped', 'failed'
+    }
+}
+
+// Define a task to build an executable JAR file
+task BuildJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'com.example.Main'  // Set the main class for the JAR
+    }
+
+    from sourceSets.main.output  // Include compiled classes in the JAR
+    archiveBaseName = 'my-application'  // Name of the JAR file
+    destinationDirectory = file('build/libs')  // Output directory for the JAR file
+}
+// Modify the defualt JAR task to include the Main-Class
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.example.Main' 
+    }
+    from { sourceSets.main.output }
+    archiveBaseName = 'my-application'
+    destinationDirectory = file('build/libs')
+}
+// Task to copy resource files to a specific directory
+task copyResources(type: Copy) {
+    from 'src/main/resources'
+    into 'build/resources/main'
+}
+
+// Task to create a zip archive of the project
+task createZip(type: Zip) {
+    from 'build'
+    archiveFileName = 'project-name.zip'
+    destinationDirectory = file('build/distributions')
+}
+
+task pushToGithub {
+    doLast {
+        def gitFolder = file("${workingDir}/.git")
+        
+        if (!gitFolder.exists()) {
+            println "Initializing Git repository..."
+            exec {
+                workingDir 'build'
+                commandLine 'git', 'init'
+            }
+            exec {
+                workingDir 'build'
+                commandLine 'git', 'remote', 'add', 'origin', 'https://github.com/nom978/github-actions-for-desktop-apps.git'
+            }
+        } else {
+            println ".git folder exists. Skipping git init and remote add."
+        }
+
+        println "Adding, committing, and pushing changes..."
+        exec {
+            workingDir 'build'
+            commandLine 'git', 'add', '.'
+        }
+        exec {
+            workingDir 'build'
+            commandLine 'git', 'commit', '-m', 'Automated deployment'
+        }
+        exec {
+            workingDir 'build'
+            commandLine 'git', 'branch', '-M', 'main'
+        }
+        exec {
+            workingDir 'build'
+            commandLine 'git', 'push', '-u', 'origin', 'main'
+        }
+    }
+}
